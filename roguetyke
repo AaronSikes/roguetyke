@@ -3,22 +3,70 @@
 require "curses"
 include Curses
 
-def show_map
-  win = Window.new 0,0,0,0
+require_relative 'lib/map'
+require_relative 'lib/map_frame'
+
+def init_controls
+  message = "i - open inventory; q - quit; arrows/hjkl - scroll map; HJKL - scroll quickly"
+  status_line = Window.new 1, cols, lines-1, 0
+  status_line.addstr message
+  status_line.refresh
+end
+
+def map_data
   map_path = File.expand_path '../map.ascii', __FILE__
-  IO.foreach(map_path) do |line|
-    win.addstr(line[0, cols])
-  end
+  IO.readlines map_path
+end
+
+def show_map
+  win = stdscr
   win.refresh
-  win.getch
-  win.close
+  init_controls
+  map = Map.new map_data
+  frame = Box.new width: 3*cols/4, height: 3*lines/4
+  border_frame = Window.new 3*lines/4+3, 3*cols/4+3, lines/8-1, cols/8-1
+  border_frame.box '|', '-'
+  border_frame.refresh
+  map_frame = MapFrame.new top: win.maxy/8, left: win.maxx/8, map: map, frame: frame
+  pad = map.create_pad
+  pad.refresh(*map_frame.dimensions)
+  (1..100).each do
+    ch = win.getch
+    case ch
+    when KEY_LEFT, 'h'
+      map_frame.scroll_left
+    when KEY_RIGHT, 'l'
+      map_frame.scroll_right
+    when KEY_UP, 'k'
+      map_frame.scroll_up
+    when KEY_DOWN, 'j'
+      map_frame.scroll_down
+    when 'H'
+      map_frame.scroll_left 10
+    when 'L'
+      map_frame.scroll_right 10
+    when 'K'
+      map_frame.scroll_up 10
+    when 'J'
+      map_frame.scroll_down 10
+    when 'q', 'Q'
+      break
+    end
+    pad.refresh(*map_frame.dimensions)
+  end
 end
 
 init_screen
 begin
-  crmode
+  noecho
+  cbreak
+  stdscr.keypad true
+
   show_map
 ensure
+  echo
+  nocbreak
+  stdscr.keypad false
   close_screen
 end
 

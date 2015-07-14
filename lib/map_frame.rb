@@ -19,24 +19,24 @@ class MapFrame
   end
 
   def dimensions
-    [top, left, y, x, frame.height, frame.width]
+    [y, x, top, left, frame.height+top, frame.width+left]
   end
 
-  def right(n = 1)
+  def scroll_right(n = 1)
     max_x = map.width - frame.width
     @x = [@x+n, max_x].min
   end
 
-  def left(n = 1)
+  def scroll_left(n = 1)
     @x = [@x-n, 0].max
   end
 
-  def down(n = 1)
+  def scroll_down(n = 1)
     max_y = map.height - frame.height
     @y = [@y + n, max_y].min
   end
   
-  def up(n=1)
+  def scroll_up(n=1)
     @y = [@y-n, 0].max
   end
 end
