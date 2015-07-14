@@ -7,7 +7,7 @@ require_relative 'lib/map'
 require_relative 'lib/map_frame'
 
 def init_controls
-  message = "i - open inventory; q - quit; arrows/hjkl - scroll map; HJKL - scroll quickly"
+  message = "i - open/close inventory; q - quit; arrows/hjkl - scroll map; HJKL - scroll quickly"
   status_line = Window.new 1, cols, lines-1, 0
   status_line.addstr message
   status_line.refresh
@@ -16,6 +16,40 @@ end
 def map_data
   map_path = File.expand_path '../map.ascii', __FILE__
   IO.readlines map_path
+end
+
+class FramePad
+  def initialize(frame, pad)
+    @frame = frame
+    @pad = pad
+  end
+
+  def handle_char(ch)
+    case ch
+    when KEY_LEFT, 'h'
+      @frame.scroll_left
+    when KEY_RIGHT, 'l'
+      @frame.scroll_right
+    when KEY_UP, 'k'
+      @frame.scroll_up
+    when KEY_DOWN, 'j'
+      @frame.scroll_down
+    when 'H'
+      @frame.scroll_left 10
+    when 'L'
+      @frame.scroll_right 10
+    when 'K'
+      @frame.scroll_up 10
+    when 'J'
+      @frame.scroll_down 10
+    end
+
+    refresh
+  end
+
+  def refresh
+    @pad.refresh(*@frame.dimensions)
+  end
 end
 
 def show_map
@@ -30,29 +64,51 @@ def show_map
   map_frame = MapFrame.new top: win.maxy/8, left: win.maxx/8, map: map, frame: frame
   pad = map.create_pad
   pad.refresh(*map_frame.dimensions)
-  (1..100).each do
-    ch = win.getch
+
+  FramePad.new map_frame, pad
+end
+
+def open_inventory
+  win = Window.new lines/2, cols/2, lines/4, cols/4
+  frame = Window.new lines/2+2, cols/2+2, lines/4-1,cols/4-1
+  items = [
+    'You search through your pockets and find:',
+    'A belt',
+    'A towel',
+    'A strange book',
+    '4 small health potions',
+    '1 large health potion',
+    'An item with a very long name that will probably wrap to the next line because it has such a very long name',
+    'Your dignity',
+    '64 copies of Adam Sandler\'s "Click" on Blu-ray'
+  ]
+  message = items.join("\n - ")
+
+  frame.box(?|, ?-)
+  frame.refresh
+  win.addstr message
+  win.refresh
+end
+
+def run_loop
+  frame = show_map
+  inventory_open = false
+  loop do
+    ch = stdscr.getch
     case ch
-    when KEY_LEFT, 'h'
-      map_frame.scroll_left
-    when KEY_RIGHT, 'l'
-      map_frame.scroll_right
-    when KEY_UP, 'k'
-      map_frame.scroll_up
-    when KEY_DOWN, 'j'
-      map_frame.scroll_down
-    when 'H'
-      map_frame.scroll_left 10
-    when 'L'
-      map_frame.scroll_right 10
-    when 'K'
-      map_frame.scroll_up 10
-    when 'J'
-      map_frame.scroll_down 10
     when 'q', 'Q'
       break
+    when 'i', 'I'
+      if inventory_open
+        inventory_open = false
+        frame.refresh
+      else
+        inventory_open = true
+        open_inventory
+      end
+    else
+      frame.handle_char(ch) unless inventory_open
     end
-    pad.refresh(*map_frame.dimensions)
   end
 end
 
@@ -60,9 +116,10 @@ init_screen
 begin
   noecho
   cbreak
+  curs_set 0
   stdscr.keypad true
 
-  show_map
+  run_loop
 ensure
   echo
   nocbreak
