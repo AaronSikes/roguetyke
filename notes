@@ -1,0 +1,9 @@
+Curses has windows, and pads.
+
+You will end up writing your own framework if it is for a larger application.
+
+It is a fairly small learning curve if you find the right resources.
+
+You have to call refresh after doing things. It is like a paint_diff command.
+
+Refreshing a pad seems to always paint.
