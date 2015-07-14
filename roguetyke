@@ -1,3 +1,24 @@
 #!/usr/bin/env ruby -w
 
-puts 'hello world'
+require "curses"
+include Curses
+
+def show_map
+  win = Window.new 0,0,0,0
+  map_path = File.expand_path '../map.ascii', __FILE__
+  IO.foreach(map_path) do |line|
+    win.addstr(line[0, cols])
+  end
+  win.refresh
+  win.getch
+  win.close
+end
+
+init_screen
+begin
+  crmode
+  show_map
+ensure
+  close_screen
+end
+
